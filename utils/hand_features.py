@@ -1,27 +1,3 @@
-# import numpy as np
-
-# def landmarks_to_feature(landmarks):
-#     """Convert 21 hand landmarks (x,y,z in normalized coords) to a translation/scale-invariant feature vector.
-#     landmarks: list of 21 landmark objects or dicts with .x, .y, .z
-#     Returns:  (63,) numpy array (normalized).
-#     """
-#     pts = np.array([[lm.x, lm.y, lm.z] for lm in landmarks], dtype=np.float32)
-#     # Translate so that wrist (index 0) is origin
-#     origin = pts[0:1, :]
-#     pts -= origin
-
-#     # Scale by max distance to avoid division by zero
-#     scale = np.linalg.norm(pts, axis=1).max()
-#     if scale < 1e-6:
-#         scale = 1.0
-#     pts /= scale
-
-#     # Flatten
-#     return pts.flatten()
-
-# LABELS_DEFAULT = [
-#     "A","B","C","D","E","F","G","H","I","L","O","S","SPACE","DEL"
-# ]
 import numpy as np
 
 def landmarks_to_feature(landmarks):

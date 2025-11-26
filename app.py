@@ -1,4 +1,4 @@
-# app.py
+
 from flask import Flask, render_template, request, jsonify
 from joblib import load
 import numpy as np
@@ -11,7 +11,6 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 MODEL_PATH = "models/isl_rf.joblib"
 ENC_PATH = "models/isl_rf_label_encoder.joblib"
 
-# load model and encoder once
 clf = None
 labels = None
 if os.path.exists(MODEL_PATH):
@@ -39,8 +38,7 @@ def json_landmarks_to_feature(lm_json):
     if not isinstance(lm_json, (list, tuple)) or len(lm_json) != 21:
         raise ValueError("Expected 21 landmarks")
 
-    # Convert to objects compatible with landmarks_to_feature (which expects objects with .x,.y,.z OR we adapt)
-    # We'll create a simple object with attributes:
+    
     class LM:
         def __init__(self, x, y, z):
             self.x = x
@@ -60,7 +58,7 @@ def json_landmarks_to_feature(lm_json):
         pts.append(LM(x, y, z))
 
     res = landmarks_to_feature(pts)
-    # landmarks_to_feature may return (feats, scale) or feats
+    
     if isinstance(res, tuple):
         feats, scale = res
     else:

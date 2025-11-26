@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 clean_isl_csv.py
 
@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 
 def is_probably_label_series(s: pd.Series, threshold_non_numeric=0.1):
-    # proportion of entries that are non-numeric or short alpha tokens
+    
     N = len(s)
     if N == 0:
         return False
