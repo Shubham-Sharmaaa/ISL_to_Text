@@ -1,0 +1,21 @@
+{
+  "model_type": "RandomForest",
+  "n_estimators": 200,
+  "classes": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "DEL",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "L",
+    "O",
+    "S",
+    "SPACE"
+  ],
+  "n_features": 63
+}
