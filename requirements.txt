@@ -10,10 +10,17 @@
 # scikit-learn
 # joblib
 
+# flask
+# flask-cors
+# numpy
+# scikit-learn
+# joblib
+# mediapipe
+# opencv-python
+
 flask
 flask-cors
+gunicorn
 numpy
 scikit-learn
 joblib
-mediapipe
-opencv-python
