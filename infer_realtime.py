@@ -76,7 +76,7 @@ def main():
     sentence = ""
     last_pred = None
     stable_count = 0
-    STABLE_N = 7   # number of frames needed to confirm a gesture
+    STABLE_N = 7   
 
     frame_count = 0
     t_start = time.time()
@@ -96,12 +96,12 @@ def main():
             pred_label = None
             pred_conf = 0.0
 
-            # ------------ HAND DETECTION ------------
+           
             if res.multi_hand_landmarks:
                 for hand_landmarks in res.multi_hand_landmarks:
                     mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-                    # FIX: landmarks_to_feature returns (feats, scale)
+                 
                     result = landmarks_to_feature(hand_landmarks.landmark)
                     if isinstance(result, tuple):
                         feats_array, scale = result
@@ -111,13 +111,12 @@ def main():
 
                     feats = np.asarray(feats_array).reshape(1, -1).astype(np.float32)
 
-                    # Skip frames where the hand is too small / far
+              
                     if scale is not None and scale < 0.02:
                         pred_label = None
                         pred_conf = 0.0
                         break
 
-                    # ------------ PREDICTION ------------
                     if hasattr(clf, "predict_proba"):
                         probs = clf.predict_proba(feats)[0]
                         idx = int(np.argmax(probs))
@@ -125,14 +124,11 @@ def main():
                         pred_conf = float(probs[idx])
                     else:
                         pred_label = clf.predict(feats)[0]
-                        pred_conf = 1.0
-
-                    # Restrict labels (optional)
+    
                     if args.allow is not None and pred_label not in args.allow:
                         pred_label = None
                         pred_conf = 0.0
 
-                    # ------------ DEBOUNCE LOGIC ------------
                     if pred_label and pred_conf >= args.conf_threshold:
                         if pred_label == last_pred:
                             stable_count += 1
@@ -153,9 +149,8 @@ def main():
                         stable_count = 0
                         last_pred = None
 
-                    break  # only first detected hand processed
+                    break  
 
-            # ------------ FPS ------------
             frame_count += 1
             if frame_count % 30 == 0:
                 t_now = time.time()
@@ -164,7 +159,6 @@ def main():
             else:
                 fps = None
 
-            # ------------ UI OVERLAY ------------
             text = f"Pred: {pred_label or '-'} ({pred_conf:.2f})"
             cv2.putText(frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255), 2)
 

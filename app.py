@@ -1,44 +1,57 @@
-
-from flask import Flask, render_template, request, jsonify
-from joblib import load
-import numpy as np
 import os
 import json
-from utils.hand_features import landmarks_to_feature  # your module
+import numpy as np
+from flask import Flask, request, jsonify, send_from_directory
+from joblib import load
+from utils.hand_features import landmarks_to_feature
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+app = Flask(
+    __name__,
+    static_folder="frontend",
+    static_url_path=""
+)
 
 MODEL_PATH = "models/isl_rf.joblib"
-ENC_PATH = "models/isl_rf_label_encoder.joblib"
+ENC_PATH = MODEL_PATH.replace(".joblib", "_label_encoder.joblib")
 
 clf = None
 labels = None
+
+# ------------ Load model + labels ------------
 if os.path.exists(MODEL_PATH):
     clf = load(MODEL_PATH)
-if os.path.exists(ENC_PATH):
+    print("[app] Loaded model:", MODEL_PATH)
+else:
+    print("[app] WARNING: model not found:", MODEL_PATH)
+
+if clf is not None and os.path.exists(ENC_PATH):
     try:
         le = load(ENC_PATH)
         labels = le.classes_.tolist()
-    except Exception:
-        labels = getattr(clf, "classes_", None).tolist() if clf is not None and hasattr(clf, "classes_") else None
+        print("[app] Loaded label encoder with classes:", labels)
+    except Exception as e:
+        print("[app] Could not load label encoder:", e)
+        labels = getattr(clf, "classes_", None)
+        if labels is not None:
+            labels = labels.tolist()
 else:
-    labels = getattr(clf, "classes_", None).tolist() if clf is not None and hasattr(clf, "classes_") else None
+    if clf is not None and hasattr(clf, "classes_"):
+        labels = clf.classes_.tolist()
 
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return send_from_directory(app.static_folder, "index.html")
 
 
 def json_landmarks_to_feature(lm_json):
     """
-    lm_json expected: list of 21 items, each is [x, y, z] OR {"x":..., "y":..., "z":...}
-    Returns: 1D numpy array of shape (63,) (feature vector) or raises ValueError
+    Convert JS landmarks (21 x [x,y,z]) into the same feature vector
+    used in collect_data.py + infer_realtime.py.
     """
     if not isinstance(lm_json, (list, tuple)) or len(lm_json) != 21:
-        raise ValueError("Expected 21 landmarks")
+        raise ValueError("Expected 21 landmarks, got %r" % len(lm_json))
 
-    
     class LM:
         def __init__(self, x, y, z):
             self.x = x
@@ -52,43 +65,41 @@ def json_landmarks_to_feature(lm_json):
             y = float(item.get("y", 0.0))
             z = float(item.get("z", 0.0))
         elif isinstance(item, (list, tuple)) and len(item) >= 2:
-            x = float(item[0]); y = float(item[1]); z = float(item[2]) if len(item) > 2 else 0.0
+            x = float(item[0])
+            y = float(item[1])
+            z = float(item[2]) if len(item) > 2 else 0.0
         else:
-            raise ValueError("landmark format invalid")
+            raise ValueError("Invalid landmark format")
+
+  
+        x = 1.0 - x
+
         pts.append(LM(x, y, z))
 
     res = landmarks_to_feature(pts)
-    
     if isinstance(res, tuple):
         feats, scale = res
     else:
-        feats = res
-    feats = np.asarray(feats, dtype=np.float32).reshape(-1)
+        feats, scale = res, None
+
+    feats = np.asarray(feats, dtype=np.float32).reshape(1, -1)
     return feats
 
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    """
-    Accept JSON:
-    {
-      "landmarks": [[x,y,z], ... 21 items],
-      "request_type": "auto" (optional)
-    }
-    Response:
-    { "label": "A", "confidence": 0.98 }
-    """
-    global clf, labels
-    data = request.get_json(force=True)
-    if data is None or "landmarks" not in data:
-        return jsonify({"error": "No landmarks provided"}), 400
-    try:
-        feats = json_landmarks_to_feature(data["landmarks"]).reshape(1, -1)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
     if clf is None:
-        return jsonify({"error": "Model not loaded on server"}), 500
+        return jsonify({"error": "Model not loaded"}), 500
+
+    data = request.get_json(silent=True)
+    if not data or "landmarks" not in data:
+        return jsonify({"error": "No landmarks provided"}), 400
+
+    try:
+        feats = json_landmarks_to_feature(data["landmarks"])
+    except Exception as e:
+        print("[app] Feature error:", e)
+        return jsonify({"error": "Feature error: " + str(e)}), 400
 
     try:
         if hasattr(clf, "predict_proba"):
@@ -97,14 +108,16 @@ def predict():
             label = labels[idx] if labels is not None else str(idx)
             conf = float(probs[idx])
         else:
-            pred = clf.predict(feats)[0]
-            label = str(pred)
+            label = clf.predict(feats)[0]
             conf = 1.0
     except Exception as e:
-        return jsonify({"error": "Model prediction failed: " + str(e)}), 500
+        print("[app] Prediction failed:", e)
+        return jsonify({"error": "Prediction failed: " + str(e)}), 500
 
+    print(f"[app] Pred: {label} ({conf:.2f})")
     return jsonify({"label": label, "confidence": conf})
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
