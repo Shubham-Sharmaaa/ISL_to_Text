@@ -1,11 +1,19 @@
-opencv-python==4.10.0.84
-mediapipe
-numpy
-scikit-learn
-joblib
+# opencv-python==4.10.0.84
+# mediapipe
+# numpy
+# scikit-learn
+# joblib
+
+# flask
+# flask-cors
+# numpy
+# scikit-learn
+# joblib
 
 flask
 flask-cors
 numpy
 scikit-learn
 joblib
+mediapipe
+opencv-python
