@@ -4,13 +4,14 @@ import numpy as np
 from flask import Flask, request, jsonify, send_from_directory
 from joblib import load
 from utils.hand_features import landmarks_to_feature
+from flask_cors import CORS       # NEW
 
 app = Flask(
     __name__,
     static_folder="frontend",
     static_url_path=""
 )
-
+CORS(app)  
 MODEL_PATH = "models/isl_rf.joblib"
 ENC_PATH = MODEL_PATH.replace(".joblib", "_label_encoder.joblib")
 
